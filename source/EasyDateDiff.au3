@@ -1,7 +1,7 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=filecheck.ico
-#AutoIt3Wrapper_Res_Description=Checks two files with datediff
-#AutoIt3Wrapper_Res_Fileversion=1.2017.9.2
+#AutoIt3Wrapper_Res_Description=Checks X(array) files with datediff
+#AutoIt3Wrapper_Res_Fileversion=1.2017.9.7
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <Array.au3>
@@ -18,13 +18,15 @@ Global $oErrorHandler = ObjEvent("AutoIt.Error", "_LogFunc")
 
 $localFile = IniRead("config.ini", "config", "localFile", "xx")
 $netFile = IniRead("config.ini", "config", "netFile", "xx")
-$server = IniRead("config.ini", "config", "server", "192.168.178.1")
+$server = IniRead("config.ini", "config", "server", "")
 $checks = IniRead("config.ini", "config", "checks", "5")
 $waittime = IniRead("config.ini", "config", "waittime", "10")
 $checktyp = IniRead("config.ini", "config", "checktyp", "0")
+$displaysame = IniRead("config.ini", "config", "displaysame", "0")
 
 if FileExists(@ScriptDir & "\config.ini") Then
- FileSetAttrib(@ScriptDir & "\config.ini", "+H")
+; FileSetAttrib(@ScriptDir & "\config.ini", "+H")
+
 Else
 IniWrite(@ScriptDir & "/config.ini", "config", "localFile",'')
 IniWrite(@ScriptDir & "/config.ini", "config", "netFile",'')
@@ -32,7 +34,8 @@ IniWrite(@ScriptDir & "/config.ini", "config", "server",'')
 IniWrite(@ScriptDir & "/config.ini", "config", "checks",'')
 IniWrite(@ScriptDir & "/config.ini", "config", "waittime",'')
 IniWrite(@ScriptDir & "/config.ini", "config", "checktyp",'')
- FileSetAttrib(@ScriptDir & "\config.ini", "+H")
+IniWrite(@ScriptDir & "/config.ini", "config", "displaysame",'0')
+; FileSetAttrib(@ScriptDir & "\config.ini", "+H")
 EndIf
 
 ; Hier gehts los
@@ -46,6 +49,9 @@ EndIf
 
 Local $iCount = 0
 Local $iDate = 2
+Local $msg = "" ; für Nachrichten
+local $fileA = ""
+Local $fileB = ""
 
 IF stringlen($server) > 7 Then
 	Local $iPing = false
@@ -53,45 +59,62 @@ IF stringlen($server) > 7 Then
 		$iPing = Ping($server,1500)
 	Next
 	IF not $iPing Then
-		_FileWriteLog($logfile, $name & " Server nicht erreichbar" & $server)
+		_FileWriteLog($logfile, " Server nicht erreichbar" & $server)
+		MsgBox(1,"Server", "Server per PING nicht erreichbar!")
 		Exit
 	Else
-		_FileWriteLog($logfile, $name & " Server erreichbar ...")
+		_FileWriteLog($logfile, " Server erreichbar ...")
 	EndIf
 EndIf
 
-For $iCount = 0 to $checks
-	Local $iCheck = FileCheck($localFile, $netFile)
-	if $iCheck = 0 Then
-		; Alles gut weiter
-		$iDate = _CompareFileTimeEx($localFile, $netFile, $checktyp)
-		ExitLoop
-	ElseIf $iCheck = 1 and $iCount = ($checks + 1) Then
-		MsgBox(1,"Datei nicht gefunden!", "Erste Datei nicht gefunden!")
-		_FileWriteLog($logfile, $name & " Erste Datei nicht gefunden.")
-	ElseIf $iCheck = 2 and $iCount = ($checks + 1) Then
-		MsgBox(1,"Datei nicht gefunden!", "Zweite Datei nicht gefunden!")
-		_FileWriteLog($logfile, $name & " Zweite Datei nicht gefunden.")
-	ElseIf $iCheck = 3 Then
-		MsgBox(1,"Datei nicht gefunden!", "Beide Dateien nicht gefunden!")
-		_FileWriteLog($logfile, $name & " Beide Dateien nciht gefunden.")
-	EndIf
+Local $aLocalFile = StringSplit($localFile, ',', $STR_ENTIRESPLIT)
+Local $aNetFile = StringSplit($netFile, ',', $STR_ENTIRESPLIT)
 
-	sleep( $waittime )
-	$iCount = $iCount + 1
-Next
+;Hier noch prüfen ob beide arrays gleich lang
 
-IF $iDate = 1 Then
-	MsgBox(1,"Dateivergleich", "Lokale Datei ist neuer!")
-ElseIf $iDate = -1 Then
-	MsgBox(1,"Dateivergleich", "Netzwerkdatei ist neuer!")
-Else
-	MsgBox(1,"Dateivergleich", "Beide Dateien sind identisch")
-EndIf
+;~ For $iCount = 0 to $checks
+	for $iArray = 1 To $aLocalFile[0]
+
+		$fileA = $aLocalFile[$iArray]
+		$fileB = $aNetFile[$iArray]
+
+		Local $iCheck = FileCheck($fileA, $fileB)
+		if $iCheck = 0 Then
+			; Alles gut weiter
+			_CheckDate(_CompareFileTimeEx($fileA, $fileB, $checktyp))
+		Else
+			If $iCheck = 1 Then
+				$msg = "Datei nicht gefunden: " & $fileA
+			ElseIf $iCheck = 2  Then
+				$msg = "Datei nicht gefunden: " & $fileB
+			ElseIf $iCheck = 3 Then
+				$msg = "Beide Dateien nicht gefunden: " &  $fileA & @CRLF & $fileB
+			EndIf
+			MsgBox(1,"Datei nicht gefunden!", $msg)
+			_FileWriteLog($logfile, $msg)
+		EndIf
+	Next
+;~ 		sleep( $waittime )
+;~ 		$iCount = $iCount + 1
+;~ Next
 
 _FileWriteLog($logfile, $name & " executed.         <----")
 
 Exit
+
+Func _CheckDate($iResult)
+	IF $iResult = 1 Then
+		$msg =  "Lokale Datei ist neuer: " & $fileA
+						MsgBox(1,"Dateivergleich", $msg)
+	ElseIf $iResult = -1 Then
+		$msg = "Netzwerkdatei ist neuer: " & $fileB
+						MsgBox(1,"Dateivergleich", $msg)
+	Else
+		$msg = "Beide Dateien sind identisch."
+		if $displaysame = 1 then MsgBox(1,"Dateivergleich", $msg)
+	EndIf
+	_FileWriteLog($logfile, $msg)
+EndFunc
 
 Func FileCheck($hSource, $hDestination)
 	; Returns		0 : all OK
