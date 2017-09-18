@@ -60,7 +60,7 @@ IF stringlen($server) > 7 Then
 	Next
 	IF not $iPing Then
 		_FileWriteLog($logfile, " Server nicht erreichbar" & $server)
-		MsgBox(1,"Server", "Server per PING nicht erreichbar!")
+		MsgBox(0,"Server", "Server per PING nicht erreichbar!")
 		Exit
 	Else
 		_FileWriteLog($logfile, " Server erreichbar ...")
@@ -71,6 +71,12 @@ Local $aLocalFile = StringSplit($localFile, ',', $STR_ENTIRESPLIT)
 Local $aNetFile = StringSplit($netFile, ',', $STR_ENTIRESPLIT)
 
 ;Hier noch prüfen ob beide arrays gleich lang
+
+if $aLocalFile[0] <> $aNetFile Then
+	MsgBox(0,"Konfiguration fehlerhaft", "Dateiliste stimmt nicht überein!")
+	Exit
+EndIf
+
 
 ;~ For $iCount = 0 to $checks
 	for $iArray = 1 To $aLocalFile[0]
@@ -90,7 +96,7 @@ Local $aNetFile = StringSplit($netFile, ',', $STR_ENTIRESPLIT)
 			ElseIf $iCheck = 3 Then
 				$msg = "Beide Dateien nicht gefunden: " &  $fileA & @CRLF & $fileB
 			EndIf
-			MsgBox(1,"Datei nicht gefunden!", $msg)
+			MsgBox(0,"Datei nicht gefunden!", $msg)
 			_FileWriteLog($logfile, $msg)
 		EndIf
 	Next
@@ -105,13 +111,13 @@ Exit
 Func _CheckDate($iResult)
 	IF $iResult = 1 Then
 		$msg =  "Lokale Datei ist neuer: " & $fileA
-						MsgBox(1,"Dateivergleich", $msg)
+						MsgBox(0,"Dateivergleich", $msg)
 	ElseIf $iResult = -1 Then
 		$msg = "Netzwerkdatei ist neuer: " & $fileB
-						MsgBox(1,"Dateivergleich", $msg)
+						MsgBox(0,"Dateivergleich", $msg)
 	Else
 		$msg = "Beide Dateien sind identisch."
-		if $displaysame = 1 then MsgBox(1,"Dateivergleich", $msg)
+		if $displaysame = 1 then MsgBox(0,"Dateivergleich", $msg)
 	EndIf
 	_FileWriteLog($logfile, $msg)
 EndFunc
