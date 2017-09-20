@@ -1,8 +1,9 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=filecheck.ico
 #AutoIt3Wrapper_Res_Description=Checks X(array) files with datediff
-#AutoIt3Wrapper_Res_Fileversion=1.2017.9.7
+#AutoIt3Wrapper_Res_Fileversion=1.2017.9.8
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
+#AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <Array.au3>
 #include <Date.au3>
@@ -72,8 +73,9 @@ Local $aNetFile = StringSplit($netFile, ',', $STR_ENTIRESPLIT)
 
 ;Hier noch prüfen ob beide arrays gleich lang
 
-if $aLocalFile[0] <> $aNetFile Then
+if $aLocalFile[0] <> $aNetFile[0] Then
 	MsgBox(0,"Konfiguration fehlerhaft", "Dateiliste stimmt nicht überein!")
+	_FileWriteLog($logfile, " Prüfung Dateiliste fehlerhaft:" & $aLocalFile[0] & " / " & $aNetFile[0])
 	Exit
 EndIf
 
@@ -116,7 +118,7 @@ Func _CheckDate($iResult)
 		$msg = "Netzwerkdatei ist neuer: " & $fileB
 						MsgBox(0,"Dateivergleich", $msg)
 	Else
-		$msg = "Beide Dateien sind identisch."
+		$msg = "Beide Dateien sind identisch." & @CRLF & $fileA & " | " & $fileB
 		if $displaysame = 1 then MsgBox(0,"Dateivergleich", $msg)
 	EndIf
 	_FileWriteLog($logfile, $msg)
